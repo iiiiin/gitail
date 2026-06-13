@@ -44,12 +44,13 @@ const ICON_BOX = 24;
 function estimatePinW(title) {
   let textWidth = 0;
   for (const ch of title) {
-    textWidth += /[\u3000-\u9fff\uac00-\ud7a3]/.test(ch) ? 14 : 7;
+    textWidth += /[\u3000-\u9fff\uac00-\ud7a3]/.test(ch) ? 11 : 6;
   }
-  const padding = 10;
+  const paddingLeft = 10;
+  const paddingRight = 6;
   const iconSize = 24 * 0.55;
   const iconTextGap = 6;
-  return Math.round(padding + iconSize + iconTextGap + textWidth + padding);
+  return Math.round(paddingLeft + iconSize + iconTextGap + textWidth + paddingRight);
 }
 
 function buildPin(item, x, side) {
@@ -60,7 +61,7 @@ function buildPin(item, x, side) {
   const [year, month] = item.date.split('-');
   const dateLabel = `${year}.${month}`;
 
-  const padding = 10;
+  const paddingLeft = 10;
   const iconScale = 0.55;
   const iconSize = 24 * iconScale;
   const iconTextGap = 6;
@@ -73,7 +74,7 @@ function buildPin(item, x, side) {
   const isUp = side === 'up';
   const pinY = isUp ? TRACK_Y - gap - pinH - tailLen : TRACK_Y + gap + tailLen;
 
-  const iconX = pinX + padding;
+  const iconX = pinX + paddingLeft;
   const rowCenterY = pinY + pinH / 2;
   const iconY = rowCenterY - iconSize / 2;
   const textX = iconX + iconSize + iconTextGap;
