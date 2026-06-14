@@ -9,6 +9,8 @@ const ICON_DATA = JSON.parse(
 
 // simple-icons svg 파일에서 path와 공식 브랜드 색상(hex) 추출
 function getIconInfo(slug) {
+  // slug는 영문 소문자/숫자만 허용 (path traversal 방어)
+  if (!/^[a-z0-9]+$/.test(slug)) return null;
   const file = path.join(ICONS_DIR, `${slug}.svg`);
   if (!fs.existsSync(file)) return null;
   const svg = fs.readFileSync(file, 'utf8');
@@ -44,13 +46,12 @@ const ICON_BOX = 24;
 function estimatePinW(title) {
   let textWidth = 0;
   for (const ch of title) {
-    textWidth += /[\u3000-\u9fff\uac00-\ud7a3]/.test(ch) ? 11 : 6;
+    textWidth += /[\u3000-\u9fff\uac00-\ud7a3]/.test(ch) ? 11 : 5.5;
   }
-  const paddingLeft = 10;
-  const paddingRight = 6;
+  const padding = 8;
   const iconSize = 24 * 0.55;
   const iconTextGap = 6;
-  return Math.round(paddingLeft + iconSize + iconTextGap + textWidth + paddingRight);
+  return Math.round(padding + iconSize + iconTextGap + textWidth + padding);
 }
 
 function buildPin(item, x, side) {
@@ -61,7 +62,7 @@ function buildPin(item, x, side) {
   const [year, month] = item.date.split('-');
   const dateLabel = `${year}.${month}`;
 
-  const paddingLeft = 10;
+  const padding = 8;
   const iconScale = 0.55;
   const iconSize = 24 * iconScale;
   const iconTextGap = 6;
@@ -74,7 +75,7 @@ function buildPin(item, x, side) {
   const isUp = side === 'up';
   const pinY = isUp ? TRACK_Y - gap - pinH - tailLen : TRACK_Y + gap + tailLen;
 
-  const iconX = pinX + paddingLeft;
+  const iconX = pinX + padding;
   const rowCenterY = pinY + pinH / 2;
   const iconY = rowCenterY - iconSize / 2;
   const textX = iconX + iconSize + iconTextGap;
