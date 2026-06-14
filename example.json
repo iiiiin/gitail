@@ -1,8 +1,0 @@
-{
-  "items": [
-    { "date": "2021-03", "icon": "flutter", "title": "코코의 숲", "url": "https://github.com/..." },
-    { "date": "2023-06", "icon": "react", "title": "pawprint", "url": "https://github.com/..." },
-    { "date": "2025-01", "icon": "wordpress", "title": "클리닉 사이트", "url": "https://..." },
-    { "date": "2026-06", "icon": "flutter", "title": "Rin", "url": "https://..." }
-  ]
-}
