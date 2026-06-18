@@ -3,7 +3,7 @@
 > A lightweight SVG timeline widget for your GitHub profile README.  
 > Embed your project history as an animated track — one URL, zero setup.
 
-![demo](https://gitail-phi.vercel.app/api/timeline?items=2024-01,react,My%20First%20App|2024-06,flutter,Mobile%20App|2025-01,typescript,Web%20Service|2025-08,figma,Design%20System)
+![demo](https://gitail-phi.vercel.app/api/timeline?items=2024-01,react,My%20First%20App|2024-06,flutter,Mobile%20App|2025-01,typescript,Web%20Service|2025-08,figma,Design%20System&v=2)
 
 ---
 
