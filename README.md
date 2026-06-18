@@ -21,6 +21,8 @@ Add the following to your `README.md`:
 |-----------|----------|-------------|
 | `items` | ✅ | `|`-separated list of timeline entries |
 
+> **Note:** Only the 5 most recent items are displayed. If more than 5 items are provided, the earliest ones are dropped automatically.
+
 ### Item Format
 
 Each item follows this structure:

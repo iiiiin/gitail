@@ -159,9 +159,15 @@ function buildRunner(x) {
 }
 
 function generateSVG(data) {
-  const items = data.items || [];
+  const MAX_ITEMS = 5;
+  let items = data.items || [];
   if (items.length === 0) {
     return `<svg width="680" height="160" viewBox="0 0 680 160" xmlns="http://www.w3.org/2000/svg"><text x="40" y="80" font-size="14">No items</text></svg>`;
+  }
+
+  // 5개 초과 시 날짜 기준 최신 5개만 사용
+  if (items.length > MAX_ITEMS) {
+    items = [...items].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_ITEMS);
   }
 
   const dates = items.map((it) => it.date);
