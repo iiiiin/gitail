@@ -161,6 +161,9 @@ function generateSVG(data) {
     w: estimatePinW(item.title),
   }));
 
+  const height = 240; // 위/아래 핀 모두 수용
+  const width = 680;
+
   // 같은 side에서 이전 핀과 겹치면 반대 side로 배치
   const SAFETY_GAP = 8;
   const lastRight = { up: -Infinity, down: -Infinity };
@@ -178,10 +181,16 @@ function generateSVG(data) {
     lastRight[p.side] = right;
   });
 
-  const pins = placed.map((p) => buildPin(p.item, p.x, p.side)).join('\n');
+  // 러너는 항상 우측 끝 up 위치에 그려지므로, 마지막 항목이 up이면서 러너와 겹치면 down으로 전환
+  const RUNNER_X = width - 40;
+  const RUNNER_HALF_W = 25;
+  const runnerLeft = RUNNER_X - RUNNER_HALF_W;
+  const lastPin = placed[placed.length - 1];
+  if (lastPin.side === 'up' && lastPin.x + lastPin.w + SAFETY_GAP > runnerLeft) {
+    lastPin.side = 'down';
+  }
 
-  const height = 240; // 위/아래 핀 모두 수용
-  const width = 680;
+  const pins = placed.map((p) => buildPin(p.item, p.x, p.side)).join('\n');
 
   return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', 'Noto Sans KR', Helvetica, Arial, sans-serif" color="#1a1a1a">
   <style>
