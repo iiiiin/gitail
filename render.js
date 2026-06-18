@@ -51,7 +51,8 @@ function estimatePinW(title) {
   const padding = 8;
   const iconSize = 24 * 0.55;
   const iconTextGap = 6;
-  return Math.round(padding + iconSize + iconTextGap + textWidth + padding);
+  const notch = 8; // 우측 V자 노치만큼 텍스트와의 여유 공간 추가 필요
+  return Math.round(padding + iconSize + iconTextGap + textWidth + padding + notch);
 }
 
 function buildPin(item, x, side) {
@@ -66,63 +67,46 @@ function buildPin(item, x, side) {
   const iconScale = 0.55;
   const iconSize = 24 * iconScale;
   const iconTextGap = 6;
-  const pinW = estimatePinW(item.title);
-  const pinH = 40;
-  const gap = 14; // 트랙과 박스 사이 간격
-  const tailLen = 10;
+  const flagW = estimatePinW(item.title); // 깃발 천의 너비 (기존 핀 폭 추정치 재사용)
+  const flagH = 36;
+  const poleLen = 64; // 점에서 깃발 천 시작까지의 막대 길이
+  const notch = 8; // 우측 V자 노치 깊이
 
-  const pinX = x - pinW / 2;
   const isUp = side === 'up';
-  const pinY = isUp ? TRACK_Y - gap - pinH - tailLen : TRACK_Y + gap + tailLen;
+  // 막대: 점(x, TRACK_Y)에서 위 또는 아래로 poleLen만큼
+  const poleTopY = isUp ? TRACK_Y - poleLen : TRACK_Y;
+  const poleBottomY = isUp ? TRACK_Y : TRACK_Y + poleLen;
 
-  const iconX = pinX + padding;
-  const rowCenterY = pinY + pinH / 2;
-  const iconY = rowCenterY - iconSize / 2;
+  // 깃발 천은 막대의 "먼 쪽 끝"에 위치 (up: 막대 위쪽 끝, down: 막대 아래쪽 끝)
+  const flagTop = isUp ? poleTopY : poleBottomY - flagH;
+  const flagBottom = flagTop + flagH;
+  const flagLeft = x;
+  const flagRight = x + flagW;
+  const flagMidY = flagTop + flagH / 2;
+
+  // 깃발 천 path: 좌상 -> 우상 -> (우측 중앙으로 V자 노치) -> 우하 -> 좌하 -> 닫기
+  const flagPath = `M${flagLeft} ${flagTop}
+    H${flagRight}
+    L${flagRight - notch} ${flagMidY}
+    L${flagRight} ${flagBottom}
+    H${flagLeft}
+    Z`.replace(/\s+/g, ' ').trim();
+
+  const iconX = flagLeft + padding;
+  const iconY = flagMidY - iconSize / 2;
   const textX = iconX + iconSize + iconTextGap;
 
-  // 박스(rounded rect)+꼬리를 하나의 외곽선 path로 결합
-  // up: 꼬리가 아래(트랙 쪽)로, down: 꼬리가 위(트랙 쪽)로
-  const r = 10;
-  const left = pinX;
-  const top = pinY;
-  const right = pinX + pinW;
-  const bottom = pinY + pinH;
-  const tailHalf = 6;
-
-  let balloonPath;
-  if (isUp) {
-    const tailTip = bottom + tailLen;
-    balloonPath = `M${left + r} ${top}
-      H${right - r} A${r} ${r} 0 0 1 ${right} ${top + r}
-      V${bottom - r} A${r} ${r} 0 0 1 ${right - r} ${bottom}
-      H${x + tailHalf}
-      L${x} ${tailTip}
-      L${x - tailHalf} ${bottom}
-      H${left + r} A${r} ${r} 0 0 1 ${left} ${bottom - r}
-      V${top + r} A${r} ${r} 0 0 1 ${left + r} ${top} Z`;
-  } else {
-    const tailTip = top - tailLen;
-    balloonPath = `M${left + r} ${top}
-      H${x - tailHalf}
-      L${x} ${tailTip}
-      L${x + tailHalf} ${top}
-      H${right - r} A${r} ${r} 0 0 1 ${right} ${top + r}
-      V${bottom - r} A${r} ${r} 0 0 1 ${right - r} ${bottom}
-      H${left + r} A${r} ${r} 0 0 1 ${left} ${bottom - r}
-      V${top + r} A${r} ${r} 0 0 1 ${left + r} ${top} Z`;
-  }
-  balloonPath = balloonPath.replace(/\s+/g, ' ').trim();
-
-  // 연도 라벨: up이면 점 아래, down이면 점 위
+  // 연도 라벨: 점 근처, 막대 반대쪽(점 바로 아래/위)
   const yearY = isUp ? TRACK_Y + 22 : TRACK_Y - 14;
 
   return `
   <g class="c-pin">
     <circle cx="${x}" cy="${TRACK_Y}" r="5" stroke-width="0.5"/>
     <text class="year" x="${x}" y="${yearY}" text-anchor="middle">${dateLabel}</text>
-    <path class="balloon" d="${balloonPath}" stroke-width="1.5"/>
+    <line class="pole" x1="${x}" y1="${poleTopY}" x2="${x}" y2="${poleBottomY}" stroke-width="2"/>
+    <path class="balloon" d="${flagPath}" stroke-width="1.5"/>
     ${iconPath ? `<g transform="translate(${iconX}, ${iconY}) scale(${iconScale})"><path class="icon" d="${iconPath}" fill="${iconColor}"/></g>` : ''}
-    <text class="ts label" x="${textX}" y="${rowCenterY}" dominant-baseline="central">${titleEscaped}</text>
+    <text class="ts label" x="${textX}" y="${flagMidY}" dominant-baseline="central">${titleEscaped}</text>
   </g>`;
 }
 
@@ -181,8 +165,8 @@ function generateSVG(data) {
   const SAFETY_GAP = 8;
   const lastRight = { up: -Infinity, down: -Infinity };
   placed.forEach((p) => {
-    const left = p.x - p.w / 2;
-    const right = p.x + p.w / 2;
+    const left = p.x;
+    const right = p.x + p.w;
     if (left > lastRight.up + SAFETY_GAP) {
       p.side = 'up';
     } else if (left > lastRight.down + SAFETY_GAP) {
@@ -204,6 +188,7 @@ function generateSVG(data) {
     .c-pin path.balloon { fill: #ffffff; stroke: #1a1a1a; }
     .c-pin path.icon { stroke: none; }
     .c-pin circle { fill: #1a1a1a; stroke: none; }
+    .c-pin line.pole { stroke: #1a1a1a; }
     .c-pin text.label { fill: #1a1a1a; font-size: 11px; font-weight: 500; }
     .c-pin text.year { fill: #888780; font-size: 11px; font-weight: 400; }
     .track { stroke: #6e6d68; }
@@ -211,6 +196,7 @@ function generateSVG(data) {
     @media (prefers-color-scheme: dark) {
       .c-pin path.balloon { fill: #2b2b2b; stroke: #e8e8e8; }
       .c-pin circle { fill: #e8e8e8; }
+      .c-pin line.pole { stroke: #e8e8e8; }
       .c-pin text.label { fill: #f0f0f0; }
       .c-pin text.year { fill: #9a9a9a; }
       .track { stroke: #6e6d68; }
