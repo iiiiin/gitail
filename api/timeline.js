@@ -35,8 +35,10 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const data = parseItemsParam((req.query || {}).items);
-    const svg = generateSVG(data);
+    const query = req.query || {};
+    const data = parseItemsParam(query.items);
+    const style = query.style === 'stairs' ? 'stairs' : 'flag';
+    const svg = generateSVG(data, style);
     return res.status(200).send(svg);
   } catch (err) {
     res.setHeader('Cache-Control', 'no-cache');

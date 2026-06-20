@@ -40,14 +40,19 @@ function dateToX(dateStr, allDates, trackStart, trackEnd) {
 const TRACK_Y = 120;
 const TRACK_START = 60;
 const TRACK_END = 540;
-const ICON_BOX = 24;
 
-// 항목의 핀 너비 추정 (충돌 감지 및 렌더링 양쪽에서 사용)
-function estimatePinW(title) {
+// 텍스트의 픽셀 폭 추정 (한글/전각 11px, 영문/숫자 5.5px 가정)
+function estimateTextWidth(title) {
   let textWidth = 0;
   for (const ch of title) {
     textWidth += /[\u3000-\u9fff\uac00-\ud7a3]/.test(ch) ? 11 : 5.5;
   }
+  return textWidth;
+}
+
+// 깃발(flag) 핀의 너비 추정: 우측 V자 노치를 위한 여유 공간 포함
+function estimatePinW(title) {
+  const textWidth = estimateTextWidth(title);
   const padding = 8;
   const iconSize = 24 * 0.55;
   const iconTextGap = 6;
@@ -111,11 +116,12 @@ function buildPin(item, x, side) {
 }
 
 // 달리는 캐릭터: 사용자가 제공한 스틱맨 애니메이션 (path 모핑, viewBox 100x100 기준)
-function buildRunner(x) {
+// baseY: 캐릭터의 발이 닿아야 할 y좌표 (기준선)
+function buildRunnerAt(x, baseY) {
   const scale = 0.5; // 100px -> 50px
-  // 발이 트랙 라인(y=TRACK_Y)에 닿도록 y 오프셋 조정. 원본에서 발끝 최대 y ≈ 90
+  // 발이 기준선(baseY)에 닿도록 y 오프셋 조정. 원본에서 발끝 최대 y ≈ 90
   const offsetX = x - 100 * scale * 0.55; // 캐릭터 중심을 x에 맞춤
-  const offsetY = TRACK_Y - 90 * scale;
+  const offsetY = baseY - 90 * scale;
   return `
   <g class="runner" transform="translate(${offsetX}, ${offsetY}) scale(${scale})" fill="none" stroke="#1a1a1a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
     <g>
@@ -142,7 +148,157 @@ function buildRunner(x) {
   </g>`;
 }
 
-function generateSVG(data) {
+function buildRunner(x) {
+  return buildRunnerAt(x, TRACK_Y);
+}
+
+// 점프하는 캐릭터: 계단 스타일에서 사용 (path 모핑, viewBox 100x100 기준)
+// baseY: 캐릭터의 발(그림자)이 닿아야 할 y좌표 (기준선)
+function buildJumperAt(x, baseY) {
+  const scale = 0.5; // 100px -> 50px
+  // 원본에서 그림자 cy=95가 발이 닿는 기준이므로, 그 지점이 baseY에 오도록 오프셋 조정
+  const offsetX = x - 50 * scale;
+  const offsetY = baseY - 95 * scale;
+  return `
+  <g class="runner" transform="translate(${offsetX}, ${offsetY}) scale(${scale})">
+    <ellipse class="shadow" cx="50" cy="95" rx="15" ry="3">
+      <animate attributeName="rx" values="15; 20; 5; 20; 15" keyTimes="0; 0.2; 0.5; 0.8; 1" dur="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1; 1; 0.2; 1; 1" keyTimes="0; 0.2; 0.5; 0.8; 1" dur="1.2s" repeatCount="indefinite"/>
+    </ellipse>
+    <g class="runner-body" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+      <animateTransform attributeName="transform" type="translate" values="0,0; 0,10; 0,-30; 0,10; 0,0" keyTimes="0; 0.2; 0.5; 0.8; 1" dur="1.2s" repeatCount="indefinite"/>
+      <circle class="runner-head" stroke="none" cx="50" cy="20" r="9"/>
+      <path stroke-width="7" d="M50,29 L50,60"/>
+      <path d="M50,35 L40,50 L35,65">
+        <animate attributeName="d" dur="1.2s" repeatCount="indefinite" keyTimes="0; 0.2; 0.5; 0.8; 1"
+          values="M50,35 L40,50 L35,65; M50,35 L35,45 L40,60; M50,35 L30,20 L25,5; M50,35 L35,45 L40,60; M50,35 L40,50 L35,65"/>
+      </path>
+      <path d="M50,35 L60,50 L65,65">
+        <animate attributeName="d" dur="1.2s" repeatCount="indefinite" keyTimes="0; 0.2; 0.5; 0.8; 1"
+          values="M50,35 L60,50 L65,65; M50,35 L65,45 L60,60; M50,35 L70,20 L75,5; M50,35 L65,45 L60,60; M50,35 L60,50 L65,65"/>
+      </path>
+      <path d="M50,60 L40,75 L35,90">
+        <animate attributeName="d" dur="1.2s" repeatCount="indefinite" keyTimes="0; 0.2; 0.5; 0.8; 1"
+          values="M50,60 L40,75 L35,90; M50,60 L35,70 L30,90; M50,60 L40,75 L45,90; M50,60 L35,70 L30,90; M50,60 L40,75 L35,90"/>
+      </path>
+      <path d="M50,60 L60,75 L65,90">
+        <animate attributeName="d" dur="1.2s" repeatCount="indefinite" keyTimes="0; 0.2; 0.5; 0.8; 1"
+          values="M50,60 L60,75 L65,90; M50,60 L65,70 L70,90; M50,60 L60,75 L55,90; M50,60 L65,70 L70,90; M50,60 L60,75 L65,90"/>
+      </path>
+    </g>
+  </g>`;
+}
+
+// 계단 한 칸을 그림 (블록 + 아이콘 + 텍스트 + 연도, 한 줄)
+// drawLeftEdge: false면 좌측 변을 그리지 않음 (이전 계단과 겹쳐 중복 선 방지)
+function buildStair(item, blockX, blockW, blockTop, blockBottom, drawLeftEdge) {
+  const iconInfo = getIconInfo(item.icon);
+  const iconColor = item.color || (iconInfo ? iconInfo.color : '#1a1a1a');
+  const iconPath = iconInfo ? iconInfo.path : null;
+  const titleEscaped = item.title.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const [year, month] = item.date.split('-');
+  const dateLabel = `${year}.${month}`;
+
+  const padding = 8;
+  const iconScale = 0.5;
+  const iconSize = 24 * iconScale;
+  const iconTextGap = 6;
+
+  const blockH = blockBottom - blockTop;
+  const labelRowY = blockTop + blockH / 2; // 판 두께 중앙에 아이콘+텍스트+연도 한 줄 배치
+
+  const iconX = blockX + padding;
+  const iconY = labelRowY - iconSize / 2;
+  const textX = iconX + iconSize + iconTextGap;
+  const yearX = blockX + blockW - padding; // 우측 끝, 패딩만큼 안쪽
+
+  const left = blockX;
+  const right = blockX + blockW;
+  const top = blockTop;
+  const bottom = blockBottom;
+
+  // 외곽선: 상단 -> 우측 -> 하단 (-> 좌측, drawLeftEdge일 때만)
+  const outlinePath = drawLeftEdge
+    ? `M${left} ${top} H${right} V${bottom} H${left} Z`
+    : `M${left} ${top} H${right} V${bottom} H${left}`;
+
+  return `
+  <g class="c-stair">
+    <rect class="step-fill" x="${blockX}" y="${blockTop}" width="${blockW}" height="${blockH}"/>
+    <path class="step-outline" d="${outlinePath}" fill="none" stroke-width="1.5"/>
+    ${iconPath ? `<g transform="translate(${iconX}, ${iconY}) scale(${iconScale})"><path class="icon" d="${iconPath}" fill="${iconColor}"/></g>` : ''}
+    <text class="ts label" x="${textX}" y="${labelRowY}" dominant-baseline="central">${titleEscaped}</text>
+    <text class="year" x="${yearX}" y="${labelRowY}" text-anchor="end" dominant-baseline="central">${dateLabel}</text>
+  </g>`;
+}
+
+function generateStairsSVG(items) {
+  const width = 680;
+  const stepThickness = 36; // 모든 계단 판의 두께(고정)
+  const n = items.length;
+
+  // 캐릭터 점프 최고점(-30) + 머리 반경까지 고려한 안전 여백
+  const jumpClearance = 70;
+  const groundY = jumpClearance + stepThickness + (n - 1) * stepThickness + 10;
+  const sideMargin = 30;
+  const overlap = 0.2; // 블록끼리 가로로 겹쳐서 가로 변이 한 선처럼 이어지게 함
+
+  const usableWidth = width - sideMargin * 2;
+  const blockW = Math.round(usableWidth / (1 + (n - 1) * (1 - overlap)));
+  const step = Math.round(blockW * (1 - overlap));
+
+  // 계단마다 올라가는 높이(rise) = 판 두께와 정확히 일치시켜,
+  // i번째 블록의 상단 변이 i+1번째 블록의 하단 변과 한 선으로 맞물리게 함
+  const riseStep = stepThickness;
+
+  const stairs = items
+    .map((item, i) => {
+      const blockX = sideMargin + i * step;
+      const blockBottom = groundY - riseStep * i; // 이 계단 판의 바닥(아래쪽 변)
+      const blockTop = blockBottom - stepThickness;
+      const drawLeftEdge = i === 0; // 첫 계단만 좌측 변을 그림 (나머지는 이전 계단과 겹쳐 생략)
+      return buildStair(item, blockX, blockW, blockTop, blockBottom, drawLeftEdge);
+    })
+    .join('\n');
+
+  // 러너는 가장 높은(마지막) 계단 위, 우측 끝에 배치
+  const lastBlockX = sideMargin + (n - 1) * step;
+  const lastBlockBottom = groundY - riseStep * (n - 1);
+  const lastBlockTop = lastBlockBottom - stepThickness;
+  const runnerX = Math.min(lastBlockX + blockW - 20, width - 40);
+  const runnerBaseY = lastBlockTop; // 계단 상단에 발이 닿도록
+
+  const height = groundY + 30; // 가장 낮은 계단 아래 연도 라벨까지 여유 포함
+
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', 'Noto Sans KR', Helvetica, Arial, sans-serif" color="#1a1a1a">
+  <style>
+    .c-stair rect.step-fill { fill: #ffffff; }
+    .c-stair path.step-outline { stroke: #1a1a1a; }
+    .c-stair path.icon { stroke: none; }
+    .c-stair text.label { fill: #1a1a1a; font-size: 11px; font-weight: 500; }
+    .c-stair text.year { fill: #888780; font-size: 10px; font-weight: 400; }
+    .ground { stroke: #6e6d68; }
+    .runner-body { stroke: #1a1a1a; }
+    .runner-head { fill: #1a1a1a; }
+    .shadow { fill: #1a1a1a; opacity: 0.15; }
+
+    @media (prefers-color-scheme: dark) {
+      .c-stair rect.step-fill { fill: #2b2b2b; }
+      .c-stair path.step-outline { stroke: #e8e8e8; }
+      .c-stair text.label { fill: #f0f0f0; }
+      .c-stair text.year { fill: #9a9a9a; }
+      .ground { stroke: #6e6d68; }
+      .runner-body { stroke: #e8e8e8; }
+      .runner-head { fill: #e8e8e8; }
+      .shadow { fill: #e8e8e8; opacity: 0.2; }
+    }
+  </style>
+  ${stairs}
+  ${buildJumperAt(runnerX, runnerBaseY)}
+</svg>`;
+}
+
+function generateSVG(data, style = 'flag') {
   const MAX_ITEMS = 5;
   let items = data.items || [];
   if (items.length === 0) {
@@ -154,6 +310,16 @@ function generateSVG(data) {
     items = [...items].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_ITEMS);
   }
 
+  if (style === 'stairs') {
+    // 계단 스타일은 시간순(왼쪽이 오래된 것)으로만 정렬하면 충분
+    const sorted = [...items].sort((a, b) => a.date.localeCompare(b.date));
+    return generateStairsSVG(sorted);
+  }
+
+  return generateFlagSVG(items);
+}
+
+function generateFlagSVG(items) {
   const dates = items.map((it) => it.date);
   const placed = items.map((item) => ({
     item,
